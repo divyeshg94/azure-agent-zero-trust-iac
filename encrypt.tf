@@ -40,7 +40,7 @@ resource "azurerm_private_endpoint" "foundry" {
 
   # One endpoint, three DNS zones. Miss one and some calls leave the VNet.
   private_dns_zone_group {
-    name                 = "foundry"
+    name = "foundry"
     private_dns_zone_ids = [
       azurerm_private_dns_zone.this["cognitive"].id,
       azurerm_private_dns_zone.this["openai"].id,
