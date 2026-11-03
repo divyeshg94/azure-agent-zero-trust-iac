@@ -1,0 +1,32 @@
+// AGENT framework: Trace queries.
+// Run these in the Log Analytics workspace created by this stack.
+
+// 1. Who called the model, and how often, in the last 24 hours.
+AzureDiagnostics
+| where TimeGenerated > ago(24h)
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| summarize calls = count() by CallerIPAddress, OperationName, bin(TimeGenerated, 1h)
+| order by TimeGenerated desc
+
+// 2. Requests blocked by the content filter or prompt shields.
+//    A sudden spike usually means a prompt injection attempt or a broken tool.
+AzureDiagnostics
+| where TimeGenerated > ago(7d)
+| where ResourceProvider == "MICROSOFT.COGNITIVESERVICES"
+| where ResultSignature == "400"
+| summarize blocked = count() by bin(TimeGenerated, 1h)
+| render timechart
+
+// 3. Every Key Vault secret read, by identity.
+AzureDiagnostics
+| where TimeGenerated > ago(24h)
+| where ResourceProvider == "MICROSOFT.KEYVAULT"
+| where OperationName == "SecretGet"
+| project TimeGenerated, identity_claim_oid_g, CallerIPAddress, ResultSignature, requestUri_s
+
+// 4. Container app errors from the agent.
+ContainerAppConsoleLogs
+| where TimeGenerated > ago(1h)
+| where Log has_any ("error", "exception", "denied", "forbidden")
+| project TimeGenerated, ContainerAppName, RevisionName, Log
+| order by TimeGenerated desc
